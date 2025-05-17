@@ -1,10 +1,10 @@
----@class YAMLPathline
+---@class KeyTrail
 local M = {}
 
 ---@alias FileType 'yaml'|'json'
 
--- Configuration
-local config = {
+-- Default configuration
+local default_config = {
     padding = "  ",     -- Reduced padding to 2 spaces
     hover_delay = 20,   -- Delay in milliseconds before showing popup
     colors = {
@@ -14,22 +14,46 @@ local config = {
         "#d4a8c4",      -- Soft purple
         "#a8d4c4",      -- Soft teal
     },
-    delimiter = " » ",
+    delimiter = "→",    -- Right arrow
 }
 
+-- Configuration
+local config = vim.deepcopy(default_config)
+
 -- Create namespace for virtual text
-local ns = vim.api.nvim_create_namespace('yaml_pathline')
+local ns = vim.api.nvim_create_namespace('keytrail')
 
 -- Set up highlight groups for each color
-for i, color in ipairs(config.colors) do
-    vim.api.nvim_set_hl(0, "YAMLPathline" .. i, {
-        fg = color,
+local function setup_highlights()
+    -- Set up transparent background for the popup
+    vim.api.nvim_set_hl(0, "KeyTrailPopup", {
+        bg = "NONE",
+        fg = "NONE",
+    })
+
+    -- Set up red color for delimiter
+    vim.api.nvim_set_hl(0, "KeyTrailDelimiter", {
+        fg = "#ff0000",  -- Bright red
         bold = false,
     })
+
+    -- Set up blue color for array brackets
+    vim.api.nvim_set_hl(0, "KeyTrailBracket", {
+        fg = "#0000ff",  -- Bright blue
+        bold = false,
+    })
+
+    for i, color in ipairs(config.colors) do
+        vim.api.nvim_set_hl(0, "YAMLPathline" .. i, {
+            fg = color,
+            bold = false,
+        })
+    end
 end
 
--- Track the current popup window
+-- Track the current popup window and buffer
 local current_popup = nil
+local current_buf = nil
 
 -- Ensure TreeSitter parser is installed and working
 ---@param lang FileType
@@ -69,9 +93,9 @@ end
 ---@param segment string
 ---@return string
 local function format_segment(segment)
-    -- If it's a number (array index), wrap it in square brackets
+    -- If it's a number (array index), format it like jq
     if tonumber(segment) then
-        return "[" .. segment .. "]"
+        return "[" .. segment .. "]"  -- This will be combined with the delimiter
     end
     return segment
 end
@@ -111,13 +135,15 @@ local function get_treesitter_path(ft)
     while node do
         local type = node:type()
 
-        if type == "block_mapping_pair" or type == "flow_mapping_pair" then
+        -- Handle both YAML and JSON object properties
+        if type == "block_mapping_pair" or type == "flow_mapping_pair" or type == "pair" then
             local key_node = node:field("key")[1]
             if key_node then
                 local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
-                table.insert(path, 1, format_segment(key))
+                table.insert(path, 1, key)
             end
-        elseif type == "block_sequence_item" or type == "flow_sequence_item" then
+        -- Handle both YAML and JSON array items
+        elseif type == "block_sequence_item" or type == "flow_sequence_item" or type == "array" then
             local parent = node:parent()
             if parent then
                 local index = 0
@@ -125,7 +151,7 @@ local function get_treesitter_path(ft)
                     if child == node then break end
                     if child:type() == type then index = index + 1 end
                 end
-                table.insert(path, 1, tostring(index))
+                table.insert(path, 1, "[" .. index .. "]")  -- Format array index with brackets
             end
         end
 
@@ -161,33 +187,18 @@ end
 local function close_popup()
     if current_popup and vim.api.nvim_win_is_valid(current_popup) then
         vim.api.nvim_win_close(current_popup, true)
-        current_popup = nil
     end
+    if current_buf and vim.api.nvim_buf_is_valid(current_buf) then
+        vim.api.nvim_buf_delete(current_buf, { force = true })
+    end
+    current_popup = nil
+    current_buf = nil
 end
 
--- Show popup with path
-local function show_popup()
-    local path = get_path()
-    if path == "" then
-        close_popup()
-        return
-    end
-
-    -- Split path into segments and create colored text
-    local segments = vim.split(path, config.delimiter, { plain = true })
-    local colored_text = {}
-
-    for i, segment in ipairs(segments) do
-        local color_idx = ((i - 1) % #config.colors) + 1
-        table.insert(colored_text, { segment, "YAMLPathline" .. color_idx })
-        if i < #segments then
-            table.insert(colored_text, { config.delimiter, "YAMLPathline1" })   -- Use first color for delimiter
-        end
-    end
-
-    -- Create a new buffer for the popup
+-- Create a new popup window
+local function create_popup()
+    -- Create a new buffer
     local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "" })   -- Empty line to hold virtual text
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
     vim.api.nvim_buf_set_option(buf, 'modified', false)
     vim.api.nvim_buf_set_option(buf, 'buftype', 'nofile')
@@ -197,29 +208,23 @@ local function show_popup()
     -- Get window dimensions
     local win_width = vim.api.nvim_win_get_width(0)
     local win_height = vim.api.nvim_win_get_height(0)
-    local popup_width = #path + 1
-    local popup_height = 1
-
-    -- Position the popup in the bottom right
-    local popup_row = win_height - 3
-    local popup_col = win_width - popup_width - 2
 
     -- Create the popup window
     local popup = vim.api.nvim_open_win(buf, false, {
         relative = 'win',
-        row = popup_row,
-        col = popup_col,
-        width = popup_width,
-        height = popup_height,
+        row = win_height - 2,  -- Just above status line
+        col = 0,              -- Start from left edge
+        width = win_width,    -- Full width to allow right alignment
+        height = 1,
         style = 'minimal',
         border = 'none',
         noautocmd = true,
-        focusable = false,   -- Make window non-focusable
-        zindex = 1,          -- Keep it below other UI elements
+        focusable = false,
+        zindex = 1,
     })
 
     -- Set popup window options
-    vim.api.nvim_win_set_option(popup, 'winblend', 0)
+    vim.api.nvim_win_set_option(popup, 'winblend', 100)  -- Make window fully transparent
     vim.api.nvim_win_set_option(popup, 'cursorline', false)
     vim.api.nvim_win_set_option(popup, 'cursorcolumn', false)
     vim.api.nvim_win_set_option(popup, 'number', false)
@@ -232,14 +237,54 @@ local function show_popup()
     vim.api.nvim_win_set_option(popup, 'scrolloff', 0)
     vim.api.nvim_win_set_option(popup, 'sidescrolloff', 0)
 
-    -- Add virtual text with colors
-    vim.api.nvim_buf_set_extmark(buf, ns, 0, 0, {
-        virt_text = colored_text,
-        virt_text_pos = "overlay",
-    })
+    -- Set the window highlight to transparent
+    vim.api.nvim_win_set_hl_ns(popup, ns)
+    vim.api.nvim_win_set_option(popup, 'winhighlight', 'Normal:KeyTrailPopup')
 
-    -- Store the popup window reference
-    current_popup = popup
+    return buf, popup
+end
+
+-- Show popup with path
+local function show_popup()
+    -- Always close existing popup first
+    close_popup()
+
+    local path = get_path()
+    if path == "" then
+        return
+    end
+
+    -- Split path into segments and create colored text
+    local segments = vim.split(path, config.delimiter, { plain = true })
+    local colored_text = {}
+
+    for i, segment in ipairs(segments) do
+        local color_idx = ((i - 1) % #config.colors) + 1
+        
+        -- Handle array indices with blue brackets
+        if segment:match("^%[.*%]$") then
+            local index = segment:match("%[(%d+)%]")
+            table.insert(colored_text, { "[", "KeyTrailBracket" })
+            table.insert(colored_text, { index, "YAMLPathline" .. color_idx })
+            table.insert(colored_text, { "]", "KeyTrailBracket" })
+        else
+            table.insert(colored_text, { segment, "YAMLPathline" .. color_idx })
+        end
+        
+        -- Add delimiter if not the last segment
+        if i < #segments then
+            table.insert(colored_text, { " → ", "KeyTrailDelimiter" })  -- Added spaces around the arrow
+        end
+    end
+
+    -- Create new popup
+    current_buf, current_popup = create_popup()
+
+    -- Add virtual text with colors
+    vim.api.nvim_buf_set_extmark(current_buf, ns, 0, 0, {
+        virt_text = colored_text,
+        virt_text_pos = "right_align",  -- Align to right edge
+    })
 end
 
 -- Timer for hover delay
@@ -253,9 +298,6 @@ local function handle_cursor_move()
         hover_timer = nil
     end
 
-    -- Always close existing popup on move
-    close_popup()
-
     -- Start new timer
     hover_timer = vim.defer_fn(function()
         show_popup()
@@ -264,7 +306,7 @@ end
 
 -- Set up autocommands
 local function setup()
-    local group = vim.api.nvim_create_augroup("YAMLPathline", { clear = true })
+    local group = vim.api.nvim_create_augroup("KeyTrail", { clear = true })
 
     -- Show popup on cursor move
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
@@ -276,14 +318,26 @@ local function setup()
     -- Clear popup when leaving buffer or window
     vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave", "WinScrolled", "ModeChanged" }, {
         group = group,
-        callback = close_popup,
+        callback = function()
+            if hover_timer then
+                hover_timer:stop()
+                hover_timer = nil
+            end
+            close_popup()
+        end,
         pattern = { "*.yaml", "*.yml", "*.json" }
     })
 
     -- Clear popup when entering insert mode
     vim.api.nvim_create_autocmd({ "InsertEnter" }, {
         group = group,
-        callback = close_popup,
+        callback = function()
+            if hover_timer then
+                hover_timer:stop()
+                hover_timer = nil
+            end
+            close_popup()
+        end,
         pattern = { "*.yaml", "*.yml", "*.json" }
     })
 end
@@ -291,9 +345,26 @@ end
 -- Initialize
 setup()
 
--- Export only what's needed
-M.setup = setup
-M.show = show_popup
-M.hide = close_popup
+-- Handler functions
+function M.handle_cursor_move()
+    show_popup()
+end
 
+function M.handle_window_change()
+    show_popup()
+end
+
+function M.handle_buffer_change()
+    show_popup()
+end
+
+-- Setup function
+function M.setup(opts)
+    if opts then
+        config = vim.tbl_deep_extend('force', config, opts)
+    end
+    setup_highlights()
+end
+
+-- Export the module
 return M

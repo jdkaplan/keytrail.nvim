@@ -1,0 +1,17 @@
+---@class KeyTrailConfig
+---@field padding string The padding to add before the path
+---@field hover_delay number The delay in milliseconds before showing the popup
+---@field colors string[] Array of colors to use for path segments
+---@field delimiter string The delimiter to use between path segments
+---@field position 'top'|'bottom' The position of the popup
+---@field zindex number The z-index of the popup window
+---@field bracket_color string The color for array brackets
+---@field delimiter_color string The color for the delimiter
+
+---@alias FileType 'yaml'|'json'
+
+---@class KeyTrail
+---@field setup fun(opts?: KeyTrailConfig) Setup the plugin with optional configuration
+---@field handle_cursor_move fun() Handle cursor movement
+---@field handle_window_change fun() Handle window changes
+---@field handle_buffer_change fun() Handle buffer changes 
