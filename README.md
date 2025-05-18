@@ -1,59 +1,76 @@
 # keytrail.nvim
 
-A Neovim plugin that shows the current path in YAML and JSON files using TreeSitter. The path is displayed in a beautiful popup window with colored segments.
+A Neovim plugin that shows the path to the current cursor position in YAML and JSON files using TreeSitter.
 
 ## Features
 
-- Shows the current path in YAML and JSON files
-- Beautiful colored segments with customizable colors
-- Hover delay to prevent flickering
-- Automatic updates on cursor movement
-- TreeSitter-based parsing for accurate path detection
-- Support for both block and flow styles in YAML
-- Support for array indices
+- Shows the object path at cursor for `yaml`, `json`
+- Uses TreeSitter for accurate parsing
+- Supports array indices
+- Transparent and non intrusive path line
+- Configurable position, colors, delimiter for path line.
 
 ## Requirements
 
-- Neovim 0.7.0 or higher
-- nvim-treesitter (for parsing)
+- Neovim 0.9.0 or higher
+- TreeSitter parser for YAML and JSON
 
 ## Installation
 
-Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
+### Using Lazy.nvim
+
+Add this to your Neovim configuration:
 
 ```lua
-use 'your-username/keytrail.nvim'
+{
+    "JFryy/keytrail.nvim",
+    dependencies = {
+        "nvim-treesitter/nvim-treesitter",
+    },
+    config = function()
+        require('keytrail').setup({
+            -- Configuration options
+            padding = "  ",     -- Space around the popup
+            hover_delay = 20,   -- Delay in milliseconds before showing popup
+            colors = {
+                "#d4c4a8",      -- Soft yellow
+                "#c4d4a8",      -- Soft green
+                "#a8c4d4",      -- Soft blue
+                "#d4a8c4",      -- Soft purple
+                "#a8d4c4",      -- Soft teal
+            },
+            delimiter = "→",    -- Path segment separator
+            position = "bottom", -- Popup position ("top" or "bottom")
+            zindex = 1,         -- Window z-index
+            bracket_color = "#0000ff", -- Color for array brackets
+            delimiter_color = "#ff0000", -- Color for path delimiters
+            filetypes = {
+                yaml = true,
+                json = true
+            }
+        })
+    end
+}
 ```
 
-Using [vim-plug](https://github.com/junegunn/vim-plug):
-
-```vim
-Plug 'your-username/keytrail.nvim'
+Make sure you have TreeSitter parsers installed:
+```lua
+:TSInstall yaml json
 ```
 
 ## Configuration
 
-The plugin can be configured by setting the following options:
+The plugin can be configured through the `setup` function. Here are all available options:
 
-```lua
-require('keytrail').setup({
-    padding = "  ",     -- Padding before the path
-    hover_delay = 20,   -- Delay in milliseconds before showing popup
-    colors = {
-        "#d4c4a8",      -- Soft yellow
-        "#c4d4a8",      -- Soft green
-        "#a8c4d4",      -- Soft blue
-        "#d4a8c4",      -- Soft purple
-        "#a8d4c4",      -- Soft teal
-    },
-    delimiter = " » ",  -- Delimiter between path segments
-})
-```
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `padding` | string | `"  "` | Space around the popup |
+| `hover_delay` | number | `20` | Delay in milliseconds before showing popup |
+| `colors` | string[] | `["#d4c4a8", "#c4d4a8", "#a8c4d4", "#d4a8c4", "#a8d4c4"]` | Array of colors for path segments |
+| `delimiter` | string | `"→"` | Path segment separator |
+| `position` | string | `"bottom"` | Popup position ("top" or "bottom") |
+| `zindex` | number | `1` | Window z-index |
+| `bracket_color` | string | `"#0000ff"` | Color for array brackets |
+| `delimiter_color` | string | `"#ff0000"` | Color for path delimiters |
+| `filetypes` | table | `{ yaml = true, json = true }` | Supported file types |
 
-## Usage
-
-The plugin works automatically in YAML and JSON files. The path will be displayed in a popup window when you move your cursor through the file.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
