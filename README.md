@@ -2,6 +2,8 @@
 
 A Neovim plugin that shows the path to the current cursor position in YAML and JSON files using TreeSitter.
 
+![Demo](https://raw.githubusercontent.com/JFryy/keytrail.nvim/assets/demo.gif)
+
 ## Features
 
 - Shows the object path at cursor for `yaml`, `json`
