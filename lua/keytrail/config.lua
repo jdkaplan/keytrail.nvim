@@ -11,7 +11,7 @@ local default_config = {
         "#d4a8c4",      -- Soft purple
         "#a8d4c4",      -- Soft teal
     },
-    delimiter = "→",    -- Right arrow
+    delimiter = ".",    -- Dot as default delimiter
     position = "bottom", -- Position of the popup
     zindex = 1,         -- z-index of the popup window
     bracket_color = "#0000ff", -- Blue color for brackets
@@ -34,7 +34,15 @@ end
 ---Update the configuration
 ---@param opts KeyTrailConfig
 function M.set(opts)
-    config = vim.tbl_deep_extend('force', config, opts)
+    if not opts then return end
+    -- Only merge fields that are provided in opts
+    for k, v in pairs(opts) do
+        if type(v) == "table" and type(config[k]) == "table" then
+            config[k] = vim.tbl_deep_extend('force', config[k], v)
+        else
+            config[k] = v
+        end
+    end
 end
 
 ---Reset the configuration to defaults

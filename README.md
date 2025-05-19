@@ -31,6 +31,7 @@ Add this to your Neovim configuration:
     },
     config = function()
         require('keytrail').setup({
+            -- All fields are optional, defaults shown below
             -- hover_delay = 20,   -- Delay in milliseconds before showing popup
             -- colors = {          -- Array of colors for path segments
             --     "#d4c4a8",      -- Soft yellow
@@ -39,7 +40,7 @@ Add this to your Neovim configuration:
             --     "#d4a8c4",      -- Soft purple
             --     "#a8d4c4",      -- Soft teal
             -- },
-            -- delimiter = "→",    -- Path segment separator
+            -- delimiter = ".",    -- Path segment separator (default changed from → to .)
             -- position = "bottom", -- Popup position ("top" or "bottom")
             -- zindex = 1,         -- Window z-index
             -- bracket_color = "#0000ff", -- Color for array brackets
@@ -60,14 +61,14 @@ Make sure you have TreeSitter parsers installed:
 
 ## Configuration
 
-The plugin can be configured through the `setup` function. Here are all available options:
+The plugin can be configured through the `setup` function. All fields are optional and will use their default values if not specified. Here are all available options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `padding` | string | `"  "` | Space around the popup |
 | `hover_delay` | number | `20` | Delay in milliseconds before showing popup |
 | `colors` | string[] | `["#d4c4a8", "#c4d4a8", "#a8c4d4", "#d4a8c4", "#a8d4c4"]` | Array of colors for path segments |
-| `delimiter` | string | `"→"` | Path segment separator |
+| `delimiter` | string | `"."` | Path segment separator |
 | `position` | string | `"bottom"` | Popup position ("top" or "bottom") |
 | `zindex` | number | `1` | Window z-index |
 | `bracket_color` | string | `"#0000ff"` | Color for array brackets |
