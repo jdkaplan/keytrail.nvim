@@ -31,25 +31,23 @@ Add this to your Neovim configuration:
     },
     config = function()
         require('keytrail').setup({
-            -- Configuration options
-            padding = "  ",     -- Space around the popup
-            hover_delay = 20,   -- Delay in milliseconds before showing popup
-            colors = {
-                "#d4c4a8",      -- Soft yellow
-                "#c4d4a8",      -- Soft green
-                "#a8c4d4",      -- Soft blue
-                "#d4a8c4",      -- Soft purple
-                "#a8d4c4",      -- Soft teal
-            },
-            delimiter = "→",    -- Path segment separator
-            position = "bottom", -- Popup position ("top" or "bottom")
-            zindex = 1,         -- Window z-index
-            bracket_color = "#0000ff", -- Color for array brackets
-            delimiter_color = "#ff0000", -- Color for path delimiters
-            filetypes = {
-                yaml = true,
-                json = true
-            }
+            -- hover_delay = 20,   -- Delay in milliseconds before showing popup
+            -- colors = {          -- Array of colors for path segments
+            --     "#d4c4a8",      -- Soft yellow
+            --     "#c4d4a8",      -- Soft green
+            --     "#a8c4d4",      -- Soft blue
+            --     "#d4a8c4",      -- Soft purple
+            --     "#a8d4c4",      -- Soft teal
+            -- },
+            -- delimiter = "→",    -- Path segment separator
+            -- position = "bottom", -- Popup position ("top" or "bottom")
+            -- zindex = 1,         -- Window z-index
+            -- bracket_color = "#0000ff", -- Color for array brackets
+            -- delimiter_color = "#ff0000", -- Color for path delimiters
+            -- filetypes = {       -- Supported file types
+            --     yaml = true,
+            --     json = true
+            -- }
         })
     end
 }

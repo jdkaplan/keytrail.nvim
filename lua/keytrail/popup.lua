@@ -103,7 +103,7 @@ function M.show(path)
         
         -- Add delimiter if not the last segment
         if i < #segments then
-            table.insert(colored_text, { " → ", "KeyTrailDelimiter" })
+            table.insert(colored_text, { config.get().delimiter, "KeyTrailDelimiter" })
         end
     end
 

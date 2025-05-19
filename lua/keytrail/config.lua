@@ -1,6 +1,6 @@
 local M = {}
 
----@type KeyTrailConfig
+---@class KeyTrailConfig
 local default_config = {
     padding = "  ",     -- Reduced padding to 2 spaces
     hover_delay = 20,   -- Delay in milliseconds before showing popup
@@ -16,6 +16,10 @@ local default_config = {
     zindex = 1,         -- z-index of the popup window
     bracket_color = "#0000ff", -- Blue color for brackets
     delimiter_color = "#ff0000", -- Red color for delimiter
+    filetypes = {       -- Supported file types
+        yaml = true,
+        json = true
+    }
 }
 
 ---@type KeyTrailConfig

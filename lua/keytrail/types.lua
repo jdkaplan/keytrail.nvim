@@ -8,8 +8,6 @@
 ---@field bracket_color string The color for array brackets
 ---@field delimiter_color string The color for the delimiter
 
----@alias FileType 'yaml'|'json'
-
 ---@class KeyTrail
 ---@field setup fun(opts?: KeyTrailConfig) Setup the plugin with optional configuration
 ---@field handle_cursor_move fun() Handle cursor movement
