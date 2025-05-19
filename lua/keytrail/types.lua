@@ -7,6 +7,7 @@
 ---@field bracket_color? string The color for array brackets
 ---@field delimiter_color? string The color for the delimiter
 ---@field filetypes? table<string, boolean> Supported file types
+---@field key_mapping? string
 
 ---@class KeyTrail
 ---@field setup fun(opts?: KeyTrailConfig) Setup the plugin with optional configuration
