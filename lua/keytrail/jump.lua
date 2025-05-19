@@ -7,22 +7,6 @@ local function clean_key(key)
     return key:gsub('^["\']', ''):gsub('["\']$', '')
 end
 
-
-local function parse_path(path)
-    local segments = {}
-    for part in path:gmatch("[^%.%[%]]+") do
-        table.insert(segments, part)
-    end
-    for bracket in path:gmatch("%b[]") do
-        local index = tonumber(segment)
-        if index then
-            table.insert(segments, index)
-        end
-    end
-    return segments
-end
-
-
 ---Find a node by its path in the document
 ---@param ft string The file type
 ---@param path string The path to find (e.g. "data[0].key1")
@@ -87,7 +71,7 @@ function M.jump_to_path(ft, path)
         if index then
             -- Handle array access
             local array_index = tonumber(index)
-            
+
             -- First find the mapping pair with the array key
             if key then
                 for child in current_node:iter_children() do
@@ -125,9 +109,9 @@ function M.jump_to_path(ft, path)
                     if current_index == array_index then
                         -- For list items, we need to get the actual content node
                         for content in child:iter_children() do
-                            if content:type() == "block_node" or 
-                               content:type() == "block_mapping" or 
-                               content:type() == "flow_mapping" then
+                            if content:type() == "block_node" or
+                                content:type() == "block_mapping" or
+                                content:type() == "flow_mapping" then
                                 current_node = content
                                 found = true
                                 break
@@ -147,7 +131,7 @@ function M.jump_to_path(ft, path)
             -- Handle object property access
             for child in current_node:iter_children() do
                 local type = child:type()
-                
+
                 -- Handle both direct key-value pairs and nested mappings
                 if type == "block_mapping_pair" or type == "flow_mapping_pair" or type == "pair" then
                     local key_node = child:field("key")[1]
@@ -160,8 +144,8 @@ function M.jump_to_path(ft, path)
                                 -- For value nodes, we need to get the actual content if it's a block_node
                                 if value_node:type() == "block_node" then
                                     for content in value_node:iter_children() do
-                                        if content:type() == "block_mapping" or 
-                                           content:type() == "flow_mapping" then
+                                        if content:type() == "block_mapping" or
+                                            content:type() == "flow_mapping" then
                                             current_node = content
                                             found = true
                                             break
@@ -172,14 +156,14 @@ function M.jump_to_path(ft, path)
                                                 if item:type() == "block_sequence_item" or item:type() == "flow_sequence_item" then
                                                     -- Get the content of the first item
                                                     for item_content in item:iter_children() do
-                                                        if item_content:type() == "block_node" or 
-                                                           item_content:type() == "block_mapping" or 
-                                                           item_content:type() == "flow_mapping" then
+                                                        if item_content:type() == "block_node" or
+                                                            item_content:type() == "block_mapping" or
+                                                            item_content:type() == "flow_mapping" then
                                                             current_node = item_content
                                                             found = true
                                                             break
-                                                        elseif item_content:type() == "flow_node" or 
-                                                               item_content:type() == "plain_scalar" then
+                                                        elseif item_content:type() == "flow_node" or
+                                                            item_content:type() == "plain_scalar" then
                                                             current_node = item_content
                                                             found = true
                                                             break
@@ -217,5 +201,76 @@ function M.jump_to_path(ft, path)
     return true
 end
 
-return M
+---Open a popup window to input a path and jump to it
+---@return boolean success Whether the jump was successful
+function M.jumpwindow()
+    local ft = vim.bo.filetype
 
+    -- Get cursor position
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local row, col = cursor[1] - 1, cursor[2]
+
+    -- Create a floating window
+    local width = 35
+    local height = 1 -- Reduced to just the input line
+    local border = 1
+
+    -- Calculate window position (to the far right of cursor)
+    local win_width = vim.api.nvim_win_get_width(0)
+    local win_height = vim.api.nvim_win_get_height(0)
+
+    -- Position window to the far right of cursor
+    local col_offset = col + 10            -- Fixed offset from cursor
+    if col_offset + width > win_width then
+        col_offset = win_width - width - 2 -- Keep within screen bounds
+    end
+
+    -- Create the floating window
+    local buf = vim.api.nvim_create_buf(false, true)
+    local win = vim.api.nvim_open_win(buf, true, {
+        relative = "cursor", -- Position relative to cursor instead of window
+        row = 0,             -- Same row as cursor
+        col = 10,            -- Offset from cursor
+        width = width,
+        height = height,
+        border = "rounded", -- More elegant border style
+        style = "minimal",
+        noautocmd = true,
+        title = " Jump to Path • <Enter> to jump • <Esc> to cancel ", -- Combined title and key bindings
+        title_pos = "center", -- Center the title
+    })
+
+    -- Set up the buffer
+    vim.api.nvim_buf_set_option(buf, "buftype", "prompt")
+    vim.api.nvim_buf_set_option(buf, "modifiable", true)
+    vim.fn.prompt_setprompt(buf, "Path: ")
+
+    -- Set up keymaps
+    local function close_win()
+        vim.api.nvim_win_close(win, true)
+    end
+
+    local function handle_enter()
+        local path = vim.api.nvim_buf_get_lines(buf, 0, 1, true)[1]
+        if path then
+            path = path:gsub("^Path: ", "")
+            close_win()
+            if path ~= "" then
+                return M.jump_to_path(ft, path)
+            end
+        end
+        return false
+    end
+
+    -- Set up keymaps for both insert and normal mode
+    vim.keymap.set({ "n", "i" }, "<CR>", handle_enter, { buffer = buf, nowait = true })
+    vim.keymap.set({ "n", "i" }, "<Esc>", close_win, { buffer = buf, nowait = true })
+
+    -- Start insert mode
+    vim.cmd("startinsert")
+
+    -- Return true to indicate the popup was created successfully
+    return true
+end
+
+return M

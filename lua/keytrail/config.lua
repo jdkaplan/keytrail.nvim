@@ -18,7 +18,8 @@ local default_config = {
     filetypes = {                -- Supported file types
         yaml = true,
         json = true
-    }
+    },
+    key_mapping = "jq"           -- Key mapping for jump window (will be prefixed with <leader>)
 }
 
 ---@type KeyTrailConfig

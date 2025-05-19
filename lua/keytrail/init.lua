@@ -191,6 +191,17 @@ M.handle_buffer_change = handle_event
 
 -- Setup function
 function M.setup(opts)
+    -- Prevent double setup
+    if M._setup then
+        return
+    end
+    M._setup = true
+    
+    -- Ensure leader key is set
+    if vim.g.mapleader == nil then
+        vim.g.mapleader = " "
+    end
+    
     if opts ~= nil then
         config.set(opts)
     end
@@ -220,6 +231,29 @@ function M.setup(opts)
             return {}
         end
     })
+
+    -- Create the KeyTrailJump command
+    vim.api.nvim_create_user_command('KeyTrailJump', function()
+        local ft = vim.bo.filetype
+        if not config.get().filetypes[ft] then
+            vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
+            return
+        end
+
+        if not jump.jumpwindow() then
+            vim.notify("KeyTrail: Could not jump to specified path", vim.log.levels.ERROR)
+        end
+    end, {})
+
+    -- Set up default key mapping
+    vim.keymap.set('n', '<leader>' .. config.get().key_mapping, function()
+        local ft = vim.bo.filetype
+        if not config.get().filetypes[ft] then
+            vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
+            return
+        end
+        jump.jumpwindow()
+    end, { desc = 'KeyTrail: Jump to path', silent = true })
 end
 
 return M

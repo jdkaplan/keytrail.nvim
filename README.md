@@ -11,6 +11,7 @@ A Neovim plugin that shows the path to the current cursor position in YAML and J
 - Supports array indices
 - Transparent and non intrusive path line
 - Configurable position, colors, delimiter for path line.
+- Quick jump to path with configurable key mapping
 
 ## Requirements
 
@@ -48,7 +49,8 @@ Add this to your Neovim configuration:
             -- filetypes = {       -- Supported file types
             --     yaml = true,
             --     json = true
-            -- }
+            -- },
+            -- key_mapping = "jq"  -- Key mapping for jump window (will be prefixed with <leader>)
         })
     end
 }
@@ -73,4 +75,14 @@ The plugin can be configured through the `setup` function. All fields are option
 | `bracket_color` | string | `"#0000ff"` | Color for array brackets |
 | `delimiter_color` | string | `"#ff0000"` | Color for path delimiters |
 | `filetypes` | table | `{ yaml = true, json = true }` | Supported file types |
+| `key_mapping` | string | `"jq"` | Key mapping for jump window (will be prefixed with `<leader>`) |
+
+## Usage
+
+The plugin provides two ways to jump to a specific path:
+
+1. Using the key mapping `<leader>jq` (configurable via `key_mapping` option)
+2. Using the command `:KeyTrailJump`
+
+Both methods will open a popup window where you can enter the path to jump to.
 
