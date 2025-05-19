@@ -5,6 +5,7 @@ local M = {}
 local config = require('keytrail.config')
 local popup = require('keytrail.popup')
 local highlights = require('keytrail.highlights')
+local jump = require('keytrail.jump')
 
 -- Timer for hover delay
 local hover_timer = nil
@@ -178,15 +179,6 @@ local function setup()
     })
 end
 
--- Setup function
-function M.setup(opts)
-    if opts ~= nil then
-        config.set(opts)
-    end
-    highlights.setup()
-    setup()
-end
-
 -- Generic handler function for all events
 local function handle_event()
     popup.show(get_path())
@@ -196,5 +188,38 @@ end
 M.handle_cursor_move = handle_event
 M.handle_window_change = handle_event
 M.handle_buffer_change = handle_event
+
+-- Setup function
+function M.setup(opts)
+    if opts ~= nil then
+        config.set(opts)
+    end
+    highlights.setup()
+    setup()
+
+    -- Create the KeyTrail command
+    vim.api.nvim_create_user_command('KeyTrail', function(opts)
+        local ft = vim.bo.filetype
+        if not config.get().filetypes[ft] then
+            vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
+            return
+        end
+
+        if not opts.args or opts.args == "" then
+            vim.notify("KeyTrail: Please provide a path to jump to", vim.log.levels.ERROR)
+            return
+        end
+
+        if not jump.jump_to_path(ft, opts.args) then
+            vim.notify("KeyTrail: Could not find path: " .. opts.args, vim.log.levels.ERROR)
+        end
+    end, {
+        nargs = 1,
+        complete = function()
+            -- TODO: Add completion for valid paths
+            return {}
+        end
+    })
+end
 
 return M
