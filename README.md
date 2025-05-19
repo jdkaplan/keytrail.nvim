@@ -65,7 +65,6 @@ The plugin can be configured through the `setup` function. All fields are option
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `padding` | string | `"  "` | Space around the popup |
 | `hover_delay` | number | `20` | Delay in milliseconds before showing popup |
 | `colors` | string[] | `["#d4c4a8", "#c4d4a8", "#a8c4d4", "#d4a8c4", "#a8d4c4"]` | Array of colors for path segments |
 | `delimiter` | string | `"."` | Path segment separator |

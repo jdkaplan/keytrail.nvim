@@ -2,7 +2,6 @@ local M = {}
 
 ---@class KeyTrailConfig
 local default_config = {
-    padding = "  ",              -- Reduced padding to 2 spaces
     hover_delay = 20,            -- Delay in milliseconds before showing popup
     colors = {
         "#d4c4a8",               -- Soft yellow

@@ -1,5 +1,4 @@
 ---@class KeyTrailConfig
----@field padding? string The padding to add before the path
 ---@field hover_delay? number The delay in milliseconds before showing the popup
 ---@field colors? string[] Array of colors to use for path segments
 ---@field delimiter? string The delimiter to use between path segments

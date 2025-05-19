@@ -37,7 +37,7 @@ function M.create()
     local win_height = vim.api.nvim_win_get_height(0)
 
     -- Calculate popup position
-    local row = config.get().position == "bottom" and win_height - 2 or 0
+    local row = config.get().position == "bottom" and win_height - 1 or 0
 
     -- Create the popup window
     local popup = vim.api.nvim_open_win(buf, false, {
@@ -99,8 +99,8 @@ function M.show(path)
         else
             table.insert(colored_text, { segment, "YAMLPathline" .. color_idx })
         end
-        -- Add delimiter if not the last segment
-        if i < #segments then
+        -- Add delimiter if not the last segment and next segment is not an array index
+        if i < #segments and not segments[i + 1]:match("^%[.*%]$") then
             table.insert(colored_text, { config.get().delimiter, "KeyTrailDelimiter" })
         end
     end

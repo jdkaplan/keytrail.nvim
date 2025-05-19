@@ -2,7 +2,6 @@
 local M = {}
 
 ---@alias FileType 'yaml'|'json'
-
 local config = require('keytrail.config')
 local popup = require('keytrail.popup')
 local highlights = require('keytrail.highlights')
@@ -139,6 +138,14 @@ local function handle_cursor_move()
     end, config.get().hover_delay)
 end
 
+-- Helper function to clear hover timer
+local function clear_hover_timer()
+    if hover_timer then
+        hover_timer:stop()
+        hover_timer = nil
+    end
+end
+
 -- Set up autocommands
 local function setup()
     local group = vim.api.nvim_create_augroup("KeyTrail", { clear = true })
@@ -154,10 +161,7 @@ local function setup()
     vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave", "WinScrolled", "ModeChanged" }, {
         group = group,
         callback = function()
-            if hover_timer then
-                hover_timer:stop()
-                hover_timer = nil
-            end
+            clear_hover_timer()
             popup.close()
         end,
         pattern = { "*.yaml", "*.yml", "*.json" }
@@ -167,10 +171,7 @@ local function setup()
     vim.api.nvim_create_autocmd({ "InsertEnter" }, {
         group = group,
         callback = function()
-            if hover_timer then
-                hover_timer:stop()
-                hover_timer = nil
-            end
+            clear_hover_timer()
             popup.close()
         end,
         pattern = { "*.yaml", "*.yml", "*.json" }
@@ -186,17 +187,14 @@ function M.setup(opts)
     setup()
 end
 
+-- Generic handler function for all events
+local function handle_event()
+    popup.show(get_path())
+end
+
 -- Handler functions
-function M.handle_cursor_move()
-    popup.show(get_path())
-end
-
-function M.handle_window_change()
-    popup.show(get_path())
-end
-
-function M.handle_buffer_change()
-    popup.show(get_path())
-end
+M.handle_cursor_move = handle_event
+M.handle_window_change = handle_event
+M.handle_buffer_change = handle_event
 
 return M
