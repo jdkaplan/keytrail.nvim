@@ -90,7 +90,6 @@ function M.show(path)
 
     for i, segment in ipairs(segments) do
         local color_idx = ((i - 1) % #config.get().colors) + 1
-        
         -- Handle array indices with blue brackets
         if segment:match("^%[.*%]$") then
             local index = segment:match("%[(%d+)%]")
@@ -100,7 +99,6 @@ function M.show(path)
         else
             table.insert(colored_text, { segment, "YAMLPathline" .. color_idx })
         end
-        
         -- Add delimiter if not the last segment
         if i < #segments then
             table.insert(colored_text, { config.get().delimiter, "KeyTrailDelimiter" })
@@ -117,4 +115,4 @@ function M.show(path)
     })
 end
 
-return M 
+return M

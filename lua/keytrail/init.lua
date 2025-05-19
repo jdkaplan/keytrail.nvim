@@ -39,20 +39,8 @@ end
 
 -- Helper: extract key from node text
 ---@param key string
----@return string
 local function clean_key(key)
     return key:gsub('^["\']', ''):gsub('["\']$', '')
-end
-
--- Helper: format path segment
----@param segment string
----@return string
-local function format_segment(segment)
-    -- If it's a number (array index), format it like jq
-    if tonumber(segment) then
-        return "[" .. segment .. "]"  -- This will be combined with the delimiter
-    end
-    return segment
 end
 
 ---@param ft FileType
@@ -97,7 +85,7 @@ local function get_treesitter_path(ft)
                 local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
                 table.insert(path, 1, key)
             end
-        -- Handle both YAML and JSON array items
+            -- Handle both YAML and JSON array items
         elseif type == "block_sequence_item" or type == "flow_sequence_item" or type == "array" then
             local parent = node:parent()
             if parent then
@@ -106,7 +94,7 @@ local function get_treesitter_path(ft)
                     if child == node then break end
                     if child:type() == type then index = index + 1 end
                 end
-                table.insert(path, 1, "[" .. index .. "]")  -- Format array index with brackets
+                table.insert(path, 1, "[" .. index .. "]") -- Format array index with brackets
             end
         end
 

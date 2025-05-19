@@ -2,21 +2,21 @@ local M = {}
 
 ---@class KeyTrailConfig
 local default_config = {
-    padding = "  ",     -- Reduced padding to 2 spaces
-    hover_delay = 20,   -- Delay in milliseconds before showing popup
+    padding = "  ",              -- Reduced padding to 2 spaces
+    hover_delay = 20,            -- Delay in milliseconds before showing popup
     colors = {
-        "#d4c4a8",      -- Soft yellow
-        "#c4d4a8",      -- Soft green
-        "#a8c4d4",      -- Soft blue
-        "#d4a8c4",      -- Soft purple
-        "#a8d4c4",      -- Soft teal
+        "#d4c4a8",               -- Soft yellow
+        "#c4d4a8",               -- Soft green
+        "#a8c4d4",               -- Soft blue
+        "#d4a8c4",               -- Soft purple
+        "#a8d4c4",               -- Soft teal
     },
-    delimiter = ".",    -- Dot as default delimiter
-    position = "bottom", -- Position of the popup
-    zindex = 1,         -- z-index of the popup window
-    bracket_color = "#0000ff", -- Blue color for brackets
+    delimiter = ".",             -- Dot as default delimiter
+    position = "bottom",         -- Position of the popup
+    zindex = 1,                  -- z-index of the popup window
+    bracket_color = "#0000ff",   -- Blue color for brackets
     delimiter_color = "#ff0000", -- Red color for delimiter
-    filetypes = {       -- Supported file types
+    filetypes = {                -- Supported file types
         yaml = true,
         json = true
     }
@@ -50,4 +50,5 @@ function M.reset()
     config = vim.deepcopy(default_config)
 end
 
-return M 
+return M
+
