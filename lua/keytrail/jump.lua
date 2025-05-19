@@ -14,17 +14,20 @@ end
 function M.jump_to_path(ft, path)
     local ok_parser, parser = pcall(vim.treesitter.get_parser, 0, ft)
     if not ok_parser or not parser then
+        vim.notify("Failed to get parser for " .. ft, vim.log.levels.ERROR)
         return false
     end
 
     local trees = parser:parse()
     if not trees or not trees[1] then
+        vim.notify("Failed to parse tree for " .. ft, vim.log.levels.ERROR)
         return false
     end
 
     local tree = trees[1]
     local root = tree:root()
     if not root then
+        vim.notify("Failed to get root node", vim.log.levels.ERROR)
         return false
     end
 
@@ -32,13 +35,16 @@ function M.jump_to_path(ft, path)
     local segments = vim.split(path, config.get().delimiter, { plain = true })
     local current_node = root
 
-    -- Traverse the path
-    for _, segment in ipairs(segments) do
-        local found = false
-        -- Check if segment is an array index
-        local index = segment:match("%[(%d+)%]")
-        local key = segment:match("^([^%[]+)%[")
-
+    -- Handle root node based on file type
+    if ft == "json" then
+        -- For JSON, get the actual object from the program node
+        for child in current_node:iter_children() do
+            if child:type() == "object" then
+                current_node = child
+                break
+            end
+        end
+    elseif ft == "yaml" then
         -- Handle YAML document structure
         if current_node:type() == "stream" then
             for child in current_node:iter_children() do
@@ -67,6 +73,14 @@ function M.jump_to_path(ft, path)
                 end
             end
         end
+    end
+
+    -- Traverse the path
+    for _, segment in ipairs(segments) do
+        local found = false
+        -- Check if segment is an array index
+        local index = segment:match("%[(%d+)%]")
+        local key = segment:match("^([^%[]+)%[")
 
         if index then
             -- Handle array access
@@ -75,18 +89,24 @@ function M.jump_to_path(ft, path)
             -- First find the mapping pair with the array key
             if key then
                 for child in current_node:iter_children() do
-                    if child:type() == "block_mapping_pair" or child:type() == "flow_mapping_pair" or child:type() == "pair" then
+                    local type = child:type()
+                    
+                    if type == "block_mapping_pair" or type == "flow_mapping_pair" or type == "pair" then
                         local key_node = child:field("key")[1]
                         if key_node then
                             local found_key = clean_key(vim.treesitter.get_node_text(key_node, 0))
+                            
                             if found_key == key then
                                 -- Get the value node which should contain the array
                                 local value_node = child:field("value")[1]
                                 if value_node then
+                                    -- For JSON, the value might be an array directly
+                                    if value_node:type() == "array" then
+                                        current_node = value_node
                                     -- If the value is a block_node, get its content
-                                    if value_node:type() == "block_node" then
+                                    elseif value_node:type() == "block_node" then
                                         for content in value_node:iter_children() do
-                                            if content:type() == "block_sequence" or content:type() == "flow_sequence" then
+                                            if content:type() == "block_sequence" or content:type() == "flow_sequence" or content:type() == "array" then
                                                 current_node = content
                                                 break
                                             end
@@ -103,19 +123,64 @@ function M.jump_to_path(ft, path)
 
             -- Now find the array item at the specified index
             local current_index = 0
+            
+            -- For JSON arrays, we need to handle both array_element nodes and direct object nodes
             for child in current_node:iter_children() do
                 local type = child:type()
-                if type == "block_sequence_item" or type == "flow_sequence_item" then
-                    if current_index == array_index then
+                
+                -- Skip non-element nodes in JSON arrays (like commas and brackets)
+                if type == "," or type == "[" or type == "]" then
+                    goto continue
+                end
+                
+                if current_index == array_index then
+                    -- For JSON, the array element might be an object directly
+                    if type == "object" then
+                        current_node = child
+                        found = true
+                        break
+                    end
+                    
+                    -- For YAML, handle block sequence items
+                    if type == "block_sequence_item" then
+                        -- For YAML sequence items, we need to get the block node
+                        for content in child:iter_children() do
+                            if content:type() == "block_node" then
+                                -- For block nodes, get their block mapping
+                                for mapping in content:iter_children() do
+                                    if mapping:type() == "block_mapping" then
+                                        current_node = mapping
+                                        found = true
+                                        break
+                                    end
+                                end
+                                if found then break end
+                            end
+                        end
+                        if found then break end
+                    end
+                    
+                    -- For other formats, check for array element types
+                    if type == "flow_sequence_item" or type == "array_element" then
                         -- For list items, we need to get the actual content node
                         for content in child:iter_children() do
-                            if content:type() == "block_node" or
+                            if content:type() == "object" then
+                                current_node = content
+                                found = true
+                                break
+                            elseif content:type() == "block_node" or
                                 content:type() == "block_mapping" or
                                 content:type() == "flow_mapping" then
                                 current_node = content
                                 found = true
                                 break
-                            elseif content:type() == "flow_node" or content:type() == "plain_scalar" then
+                            elseif content:type() == "flow_node" or 
+                                   content:type() == "plain_scalar" or
+                                   content:type() == "string" or
+                                   content:type() == "number" or
+                                   content:type() == "true" or
+                                   content:type() == "false" or
+                                   content:type() == "null" then
                                 -- For scalar values, use the content node directly
                                 current_node = content
                                 found = true
@@ -124,8 +189,13 @@ function M.jump_to_path(ft, path)
                         end
                         if found then break end
                     end
+                end
+                
+                if type ~= "," and type ~= "[" and type ~= "]" then
                     current_index = current_index + 1
                 end
+                
+                ::continue::
             end
         else
             -- Handle object property access
@@ -137,6 +207,7 @@ function M.jump_to_path(ft, path)
                     local key_node = child:field("key")[1]
                     if key_node then
                         local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
+                        
                         if key == segment then
                             -- Get the value node
                             local value_node = child:field("value")[1]
@@ -145,25 +216,45 @@ function M.jump_to_path(ft, path)
                                 if value_node:type() == "block_node" then
                                     for content in value_node:iter_children() do
                                         if content:type() == "block_mapping" or
-                                            content:type() == "flow_mapping" then
+                                            content:type() == "flow_mapping" or
+                                            content:type() == "object" then
                                             current_node = content
                                             found = true
                                             break
-                                        elseif content:type() == "block_sequence" or content:type() == "flow_sequence" then
+                                        elseif content:type() == "block_sequence" or 
+                                               content:type() == "flow_sequence" or
+                                               content:type() == "array" then
                                             -- If we found a sequence, get its first item
                                             current_node = content
                                             for item in content:iter_children() do
-                                                if item:type() == "block_sequence_item" or item:type() == "flow_sequence_item" then
+                                                if item:type() == "block_sequence_item" or 
+                                                   item:type() == "flow_sequence_item" or
+                                                   item:type() == "array_element" then
                                                     -- Get the content of the first item
                                                     for item_content in item:iter_children() do
-                                                        if item_content:type() == "block_node" or
-                                                            item_content:type() == "block_mapping" or
-                                                            item_content:type() == "flow_mapping" then
+                                                        if item_content:type() == "block_node" then
+                                                            -- For YAML block nodes, get their block mapping
+                                                            for mapping in item_content:iter_children() do
+                                                                if mapping:type() == "block_mapping" then
+                                                                    current_node = mapping
+                                                                    found = true
+                                                                    break
+                                                                end
+                                                            end
+                                                            if found then break end
+                                                        elseif item_content:type() == "block_mapping" or
+                                                            item_content:type() == "flow_mapping" or
+                                                            item_content:type() == "object" then
                                                             current_node = item_content
                                                             found = true
                                                             break
                                                         elseif item_content:type() == "flow_node" or
-                                                            item_content:type() == "plain_scalar" then
+                                                            item_content:type() == "plain_scalar" or
+                                                            item_content:type() == "string" or
+                                                            item_content:type() == "number" or
+                                                            item_content:type() == "true" or
+                                                            item_content:type() == "false" or
+                                                            item_content:type() == "null" then
                                                             current_node = item_content
                                                             found = true
                                                             break
@@ -191,6 +282,7 @@ function M.jump_to_path(ft, path)
         end
 
         if not found then
+            vim.notify("Failed to find segment: " .. segment, vim.log.levels.ERROR)
             return false
         end
     end
@@ -211,8 +303,8 @@ function M.jumpwindow()
     local row, col = cursor[1] - 1, cursor[2]
 
     -- Create a floating window
-    local width = 35
-    local height = 1 -- Reduced to just the input line
+    local width = 40
+    local height = 1
     local border = 1
 
     -- Calculate window position (to the far right of cursor)
@@ -228,22 +320,25 @@ function M.jumpwindow()
     -- Create the floating window
     local buf = vim.api.nvim_create_buf(false, true)
     local win = vim.api.nvim_open_win(buf, true, {
-        relative = "cursor", -- Position relative to cursor instead of window
-        row = 0,             -- Same row as cursor
-        col = 10,            -- Offset from cursor
+        relative = "cursor",
+        row = 0,
+        col = 10,
         width = width,
         height = height,
-        border = "rounded", -- More elegant border style
+        border = "rounded",
         style = "minimal",
         noautocmd = true,
-        title = " Jump to Path • <Enter> to jump • <Esc> to cancel ", -- Combined title and key bindings
-        title_pos = "center", -- Center the title
+        title = " Jump to Path • <Enter> to jump • <Esc> to cancel ",
+        title_pos = "center",
+        zindex = 50,
+        focusable = true,
+        noautocmd = true,
     })
 
     -- Set up the buffer
     vim.api.nvim_buf_set_option(buf, "buftype", "prompt")
     vim.api.nvim_buf_set_option(buf, "modifiable", true)
-    vim.fn.prompt_setprompt(buf, "Path: ")
+    vim.fn.prompt_setprompt(buf, "")
 
     -- Set up keymaps
     local function close_win()
@@ -253,7 +348,6 @@ function M.jumpwindow()
     local function handle_enter()
         local path = vim.api.nvim_buf_get_lines(buf, 0, 1, true)[1]
         if path then
-            path = path:gsub("^Path: ", "")
             close_win()
             if path ~= "" then
                 return M.jump_to_path(ft, path)
