@@ -179,7 +179,7 @@ end
 
 -- Setup function
 function M.setup(opts)
-    if opts then
+    if opts ~= nil then
         config.set(opts)
     end
     highlights.setup()

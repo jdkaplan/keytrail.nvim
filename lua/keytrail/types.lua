@@ -1,12 +1,13 @@
 ---@class KeyTrailConfig
----@field padding string The padding to add before the path
----@field hover_delay number The delay in milliseconds before showing the popup
----@field colors string[] Array of colors to use for path segments
----@field delimiter string The delimiter to use between path segments
----@field position 'top'|'bottom' The position of the popup
----@field zindex number The z-index of the popup window
----@field bracket_color string The color for array brackets
----@field delimiter_color string The color for the delimiter
+---@field padding? string The padding to add before the path
+---@field hover_delay? number The delay in milliseconds before showing the popup
+---@field colors? string[] Array of colors to use for path segments
+---@field delimiter? string The delimiter to use between path segments
+---@field position? 'top'|'bottom' The position of the popup
+---@field zindex? number The z-index of the popup window
+---@field bracket_color? string The color for array brackets
+---@field delimiter_color? string The color for the delimiter
+---@field filetypes? table<string, boolean> Supported file types
 
 ---@class KeyTrail
 ---@field setup fun(opts?: KeyTrailConfig) Setup the plugin with optional configuration
