@@ -2,6 +2,18 @@ local M = {}
 
 ---@class KeyTrailConfig
 local default_config = {
+    -- Performance optimizations
+    lazy = {
+        enabled = true,          -- Enable lazy loading
+        ft = { "yaml", "json" }, -- Only load for YAML and JSON files
+        event = "UIEnter",       -- Defer loading until after UI is ready
+    },
+    -- TreeSitter optimizations
+    treesitter = {
+        defer_parser_install = true,   -- Defer parser installation to avoid startup delays
+        load_parsers_on_demand = true, -- Only load parsers when needed
+    },
+    -- UI settings
     hover_delay = 20,            -- Delay in milliseconds before showing popup
     colors = {
         "#d4c4a8",               -- Soft yellow
@@ -19,7 +31,7 @@ local default_config = {
         yaml = true,
         json = true
     },
-    key_mapping = "jq"           -- Key mapping for jump window (will be prefixed with <leader>)
+    key_mapping = "jq" -- Key mapping for jump window (will be prefixed with <leader>)
 }
 
 ---@type KeyTrailConfig
@@ -51,4 +63,3 @@ function M.reset()
 end
 
 return M
-

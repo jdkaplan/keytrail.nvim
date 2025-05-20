@@ -8,4 +8,5 @@ end
 -- Call init when the plugin is loaded
 M.init()
 
-return M 
+return M
+
