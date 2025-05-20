@@ -1,6 +1,7 @@
 # KeyTrail.nvim
 
 A Neovim plugin for navigating YAML and JSON files using path-like syntax. KeyTrail provides an intuitive way to jump to specific locations in your YAML and JSON files, similar to how you might navigate a file system.
+![Demo](docs/demo.gif)
 
 ## Features
 
