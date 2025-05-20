@@ -95,10 +95,10 @@ KeyTrail provides two main ways to navigate your YAML and JSON files:
 
 ### 1. Command Line
 
-Use the `:KeyTrailJump` command followed by a path:
+Use the `:KeyTrail` command followed by a path:
 
 ```vim
-:KeyTrailJump data[0].key
+:KeyTrail data[0].key
 ```
 
 ### 2. Interactive Jump Window
