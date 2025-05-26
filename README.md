@@ -1,5 +1,5 @@
 # KeyTrail.nvim
-A Neovim plugin in pura lua that shows the current path in YAML and JSON files, with the ability to jump to any path in the document using fuzzyfinding search w/ telescope / filepickers.
+A Neovim plugin in pure lua that shows the current path in YAML and JSON files, with the ability to jump to any path in the document using fuzzyfinding search w/ telescope / filepickers.
 
 ![Demo](docs/demo.gif)
 
