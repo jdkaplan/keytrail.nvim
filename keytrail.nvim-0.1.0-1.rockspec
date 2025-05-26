@@ -15,7 +15,8 @@ description = {
 }
 dependencies = {
    "lua >= 5.1",
-   "nvim-treesitter"
+   "nvim-treesitter",
+   "telescope.nvim"
 }
 build = {
    type = "builtin",
@@ -27,4 +28,4 @@ build = {
          ["keytrail"] = "lua/keytrail",
       },
    },
-} 
+}

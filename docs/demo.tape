@@ -28,8 +28,12 @@ Type "jjjjj"
 Sleep 2s
 Type " jq"
 Sleep 1s
-Type "projects[0].metadata.created"
+Type "created"
+Up 2
 Sleep 2s
 Enter
-Sleep 2s
+Type " jq"
+Type "project"
+Enter
 Type "jj"
+Sleep 2s

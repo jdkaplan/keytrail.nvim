@@ -7,7 +7,6 @@ local function clean_key(key)
     return key:gsub('^["\']', ''):gsub('["\']$', '')
 end
 
----Find a node by its path in the document
 ---@param ft string The file type
 ---@param path string The path to find (e.g. "data[0].key1")
 ---@return boolean success Whether the jump was successful
@@ -90,12 +89,12 @@ function M.jump_to_path(ft, path)
             if key then
                 for child in current_node:iter_children() do
                     local type = child:type()
-                    
+
                     if type == "block_mapping_pair" or type == "flow_mapping_pair" or type == "pair" then
                         local key_node = child:field("key")[1]
                         if key_node then
                             local found_key = clean_key(vim.treesitter.get_node_text(key_node, 0))
-                            
+
                             if found_key == key then
                                 -- Get the value node which should contain the array
                                 local value_node = child:field("value")[1]
@@ -103,7 +102,7 @@ function M.jump_to_path(ft, path)
                                     -- For JSON, the value might be an array directly
                                     if value_node:type() == "array" then
                                         current_node = value_node
-                                    -- If the value is a block_node, get its content
+                                        -- If the value is a block_node, get its content
                                     elseif value_node:type() == "block_node" then
                                         for content in value_node:iter_children() do
                                             if content:type() == "block_sequence" or content:type() == "flow_sequence" or content:type() == "array" then
@@ -123,16 +122,16 @@ function M.jump_to_path(ft, path)
 
             -- Now find the array item at the specified index
             local current_index = 0
-            
+
             -- For JSON arrays, we need to handle both array_element nodes and direct object nodes
             for child in current_node:iter_children() do
                 local type = child:type()
-                
+
                 -- Skip non-element nodes in JSON arrays (like commas and brackets)
                 if type == "," or type == "[" or type == "]" then
                     goto continue
                 end
-                
+
                 if current_index == array_index then
                     -- For JSON, the array element might be an object directly
                     if type == "object" then
@@ -140,7 +139,7 @@ function M.jump_to_path(ft, path)
                         found = true
                         break
                     end
-                    
+
                     -- For YAML, handle block sequence items
                     if type == "block_sequence_item" then
                         -- For YAML sequence items, we need to get the block node
@@ -159,7 +158,7 @@ function M.jump_to_path(ft, path)
                         end
                         if found then break end
                     end
-                    
+
                     -- For other formats, check for array element types
                     if type == "flow_sequence_item" or type == "array_element" then
                         -- For list items, we need to get the actual content node
@@ -174,13 +173,13 @@ function M.jump_to_path(ft, path)
                                 current_node = content
                                 found = true
                                 break
-                            elseif content:type() == "flow_node" or 
-                                   content:type() == "plain_scalar" or
-                                   content:type() == "string" or
-                                   content:type() == "number" or
-                                   content:type() == "true" or
-                                   content:type() == "false" or
-                                   content:type() == "null" then
+                            elseif content:type() == "flow_node" or
+                                content:type() == "plain_scalar" or
+                                content:type() == "string" or
+                                content:type() == "number" or
+                                content:type() == "true" or
+                                content:type() == "false" or
+                                content:type() == "null" then
                                 -- For scalar values, use the content node directly
                                 current_node = content
                                 found = true
@@ -190,11 +189,11 @@ function M.jump_to_path(ft, path)
                         if found then break end
                     end
                 end
-                
+
                 if type ~= "," and type ~= "[" and type ~= "]" then
                     current_index = current_index + 1
                 end
-                
+
                 ::continue::
             end
         else
@@ -207,7 +206,7 @@ function M.jump_to_path(ft, path)
                     local key_node = child:field("key")[1]
                     if key_node then
                         local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
-                        
+
                         if key == segment then
                             -- Get the value node
                             local value_node = child:field("value")[1]
@@ -221,15 +220,15 @@ function M.jump_to_path(ft, path)
                                             current_node = content
                                             found = true
                                             break
-                                        elseif content:type() == "block_sequence" or 
-                                               content:type() == "flow_sequence" or
-                                               content:type() == "array" then
+                                        elseif content:type() == "block_sequence" or
+                                            content:type() == "flow_sequence" or
+                                            content:type() == "array" then
                                             -- If we found a sequence, get its first item
                                             current_node = content
                                             for item in content:iter_children() do
-                                                if item:type() == "block_sequence_item" or 
-                                                   item:type() == "flow_sequence_item" or
-                                                   item:type() == "array_element" then
+                                                if item:type() == "block_sequence_item" or
+                                                    item:type() == "flow_sequence_item" or
+                                                    item:type() == "array_element" then
                                                     -- Get the content of the first item
                                                     for item_content in item:iter_children() do
                                                         if item_content:type() == "block_node" then
@@ -293,77 +292,164 @@ function M.jump_to_path(ft, path)
     return true
 end
 
----Open a popup window to input a path and jump to it
+---Get all possible paths in the current document
+---@return table paths Array of paths
+local function get_all_paths()
+    local ft = vim.bo.filetype
+    local ok_parser, parser = pcall(vim.treesitter.get_parser, 0, ft)
+    if not ok_parser or not parser then
+        return {}
+    end
+
+    local trees = parser:parse()
+    if not trees or not trees[1] then
+        return {}
+    end
+
+    local tree = trees[1]
+    local root = tree:root()
+    if not root then
+        return {}
+    end
+
+    local paths = {}
+    local function traverse_node(node, current_path)
+        local type = node:type()
+
+        -- Handle YAML document structure
+        if ft == "yaml" then
+            if type == "stream" or type == "document" or type == "block_node" then
+                for child in node:iter_children() do
+                    traverse_node(child, current_path)
+                end
+                return
+            end
+        end
+
+        -- Handle JSON structure
+        if ft == "json" then
+            if type == "program" or type == "document" or type == "object" then
+                for child in node:iter_children() do
+                    traverse_node(child, current_path)
+                end
+                return
+            end
+
+            if type == "array" then
+                local index = 0
+                for child in node:iter_children() do
+                    if child:type() == "array_element" then
+                        local new_path = current_path .. "[" .. index .. "]"
+                        table.insert(paths, new_path)
+                        traverse_node(child, new_path)
+                        index = index + 1
+                    end
+                end
+                return
+            end
+        end
+
+        -- Handle object properties
+        if type == "pair" or type == "block_mapping_pair" or type == "flow_mapping_pair" then
+            local key_node = node:field("key")[1]
+            if key_node then
+                local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
+                local new_path = current_path .. (current_path ~= "" and config.get().delimiter or "") .. key
+                table.insert(paths, new_path)
+
+                -- Traverse value node
+                local value_node = node:field("value")[1]
+                if value_node then
+                    traverse_node(value_node, new_path)
+                end
+            end
+            -- Handle array items
+        elseif type == "block_sequence_item" or type == "flow_sequence_item" then
+            local parent = node:parent()
+            if parent then
+                local index = 0
+                for child in parent:iter_children() do
+                    if child == node then break end
+                    if child:type() == type then index = index + 1 end
+                end
+                local new_path = current_path .. "[" .. index .. "]"
+                table.insert(paths, new_path)
+
+                -- Traverse array item content
+                for child in node:iter_children() do
+                    traverse_node(child, new_path)
+                end
+            end
+            -- Handle block mappings and sequences
+        elseif type == "block_mapping" or type == "flow_mapping" or type == "block_sequence" or type == "flow_sequence" then
+            for child in node:iter_children() do
+                traverse_node(child, current_path)
+            end
+        end
+    end
+
+    traverse_node(root, "")
+    return paths
+end
+
+---Open Telescope picker to select and jump to a path
 ---@return boolean success Whether the jump was successful
 function M.jumpwindow()
     local ft = vim.bo.filetype
-
-    -- Get cursor position
-    local cursor = vim.api.nvim_win_get_cursor(0)
-    local row, col = cursor[1] - 1, cursor[2]
-
-    -- Create a floating window
-    local width = 40
-    local height = 1
-    local border = 1
-
-    -- Calculate window position (to the far right of cursor)
-    local win_width = vim.api.nvim_win_get_width(0)
-    local win_height = vim.api.nvim_win_get_height(0)
-
-    -- Position window to the far right of cursor
-    local col_offset = col + 10            -- Fixed offset from cursor
-    if col_offset + width > win_width then
-        col_offset = win_width - width - 2 -- Keep within screen bounds
-    end
-
-    -- Create the floating window
-    local buf = vim.api.nvim_create_buf(false, true)
-    local win = vim.api.nvim_open_win(buf, true, {
-        relative = "cursor",
-        row = 0,
-        col = 10,
-        width = width,
-        height = height,
-        border = "rounded",
-        style = "minimal",
-        noautocmd = true,
-        title = " Jump to Path • <Enter> to jump • <Esc> to cancel ",
-        title_pos = "center",
-        zindex = 50,
-        focusable = true,
-        noautocmd = true,
-    })
-
-    -- Set up the buffer
-    vim.api.nvim_buf_set_option(buf, "buftype", "prompt")
-    vim.api.nvim_buf_set_option(buf, "modifiable", true)
-    vim.fn.prompt_setprompt(buf, "")
-
-    -- Set up keymaps
-    local function close_win()
-        vim.api.nvim_win_close(win, true)
-    end
-
-    local function handle_enter()
-        local path = vim.api.nvim_buf_get_lines(buf, 0, 1, true)[1]
-        if path then
-            close_win()
-            if path ~= "" then
-                return M.jump_to_path(ft, path)
-            end
-        end
+    if not config.get().filetypes[ft] then
+        vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
         return false
     end
 
-    -- Set up keymaps for both insert and normal mode
-    vim.keymap.set({ "n", "i" }, "<CR>", handle_enter, { buffer = buf, nowait = true })
-    vim.keymap.set({ "n", "i" }, "<Esc>", close_win, { buffer = buf, nowait = true })
+    -- Get all possible paths
+    local paths = get_all_paths()
+    if #paths == 0 then
+        vim.notify("KeyTrail: No paths found in current document", vim.log.levels.WARN)
+        return false
+    end
 
-    -- Start insert mode
-    vim.cmd("startinsert")
+    -- Create entries for Telescope
+    local entries = {}
+    for _, path in ipairs(paths) do
+        table.insert(entries, {
+            value = path,
+            display = path,
+            ordinal = path,
+        })
+    end
 
-    -- Return true to indicate the popup was created successfully
+    -- Configure Telescope picker
+    local picker = require('telescope.pickers')
+    local finders = require('telescope.finders')
+    local conf = require('telescope.config').values
+    local actions = require('telescope.actions')
+    local action_state = require('telescope.actions.state')
+
+    picker.new({}, {
+        prompt_title = "KeyTrail Paths",
+        finder = finders.new_table({
+            results = entries,
+            entry_maker = function(entry)
+                return {
+                    value = entry.value,
+                    display = entry.display,
+                    ordinal = entry.ordinal,
+                }
+            end,
+        }),
+        sorter = conf.generic_sorter({}),
+        attach_mappings = function(prompt_bufnr, map)
+            actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local selection = action_state.get_selected_entry()
+                if selection then
+                    M.jump_to_path(ft, selection.value)
+                end
+            end)
+            return true
+        end,
+    }):find()
+
     return true
 end
 

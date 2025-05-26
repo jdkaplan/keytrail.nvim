@@ -38,7 +38,9 @@ projects:
       - taskId: "t002"
         title: "Model training"
         completed: true
-        assignees: []
+        assignees:
+          - "meep"
+          - "moop"
         due: "2025-01-15"
 
   - projectId: "p002"

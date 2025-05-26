@@ -196,12 +196,12 @@ function M.setup(opts)
         return
     end
     M._setup = true
-    
+
     -- Ensure leader key is set
     if vim.g.mapleader == nil then
         vim.g.mapleader = " "
     end
-    
+
     if opts ~= nil then
         config.set(opts)
     end
