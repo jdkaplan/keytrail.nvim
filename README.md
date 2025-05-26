@@ -24,7 +24,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-    "james1236/keytrail.nvim",
+    "jfryy/keytrail.nvim",
     dependencies = {
         "nvim-treesitter/nvim-treesitter",
         "nvim-telescope/telescope.nvim",
@@ -39,7 +39,7 @@ Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
 
 ```lua
 use {
-    "james1236/keytrail.nvim",
+    "jfryy/keytrail.nvim",
     requires = {
         "nvim-treesitter/nvim-treesitter",
         "nvim-telescope/telescope.nvim",
