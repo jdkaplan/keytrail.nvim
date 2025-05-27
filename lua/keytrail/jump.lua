@@ -417,7 +417,6 @@ function M.jumpwindow()
             ordinal = path,
         })
     end
-
     -- Configure Telescope picker
     local picker = require('telescope.pickers')
     local finders = require('telescope.finders')
@@ -438,7 +437,7 @@ function M.jumpwindow()
             end,
         }),
         sorter = conf.generic_sorter({}),
-        attach_mappings = function(prompt_bufnr, map)
+        attach_mappings = function(prompt_bufnr)
             actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
                 local selection = action_state.get_selected_entry()

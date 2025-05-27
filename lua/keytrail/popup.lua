@@ -54,7 +54,7 @@ function M.create()
     })
 
     -- Set popup window options
-    vim.api.nvim_win_set_option(popup, 'winblend', 100)
+    vim.api.nvim_win_set_option(popup, 'winblend', 0)
     vim.api.nvim_win_set_option(popup, 'cursorline', false)
     vim.api.nvim_win_set_option(popup, 'cursorcolumn', false)
     vim.api.nvim_win_set_option(popup, 'number', false)
