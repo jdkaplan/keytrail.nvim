@@ -10,8 +10,7 @@ local jump = require('keytrail.jump')
 -- Timer for hover delay
 local hover_timer = nil
 
--- Ensure TreeSitter parser is installed and working
----@param lang FileType
+---@param lang string
 ---@return boolean
 local function ensure_parser_ready(lang)
     local ok, parsers = pcall(require, 'nvim-treesitter.parsers')
@@ -20,12 +19,19 @@ local function ensure_parser_ready(lang)
         return false
     end
 
-    local parser_config = parsers.get_parser_configs()[lang]
+    -- Check if using new treesitter (get_parser_configs returns nil)
+    if not parsers or not parsers.get_parser_configs then
+        return true
+    end
+
+    local parser_configs = parsers.get_parser_configs()
+    local parser_config = parser_configs[lang]
     if not parser_config then
         vim.notify("yaml_pathline: No parser config for " .. lang, vim.log.levels.WARN)
         return false
     end
 
+    -- Check if the parser is installed
     if not parsers.has_parser(lang) then
         vim.schedule(function()
             vim.cmd('TSInstall ' .. lang)
