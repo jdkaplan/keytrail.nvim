@@ -22,8 +22,9 @@ function M.close()
 end
 
 ---Create a new popup window
+---@param path_width number The width needed for the path text
 ---@return number, number The buffer and window IDs
-function M.create()
+function M.create(path_width)
     -- Create a new buffer
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
@@ -36,15 +37,17 @@ function M.create()
     local win_width = vim.api.nvim_win_get_width(0)
     local win_height = vim.api.nvim_win_get_height(0)
 
-    -- Calculate popup position
+    -- Calculate popup position and size
     local row = config.get().position == "bottom" and win_height - 1 or 0
+    local popup_width = math.min(path_width, win_width)
+    local col = win_width - popup_width
 
     -- Create the popup window
     local popup = vim.api.nvim_open_win(buf, false, {
         relative = 'win',
         row = row,
-        col = 0,
-        width = win_width,
+        col = col,
+        width = popup_width,
         height = 1,
         style = 'minimal',
         border = 'none',
@@ -87,6 +90,7 @@ function M.show(path)
     -- Split path into segments and create colored text
     local segments = vim.split(path, config.get().delimiter, { plain = true })
     local colored_text = {}
+    local total_width = 0
 
     for i, segment in ipairs(segments) do
         local color_idx = ((i - 1) % #config.get().colors) + 1
@@ -96,22 +100,28 @@ function M.show(path)
             table.insert(colored_text, { "[", "KeyTrailBracket" })
             table.insert(colored_text, { index, "YAMLPathline" .. color_idx })
             table.insert(colored_text, { "]", "KeyTrailBracket" })
+            total_width = total_width + #segment
         else
             table.insert(colored_text, { segment, "YAMLPathline" .. color_idx })
+            total_width = total_width + #segment
         end
         -- Add delimiter if not the last segment and next segment is not an array index
         if i < #segments and not segments[i + 1]:match("^%[.*%]$") then
             table.insert(colored_text, { config.get().delimiter, "KeyTrailDelimiter" })
+            total_width = total_width + #config.get().delimiter
         end
     end
 
-    -- Create new popup
-    current_buf, current_popup = M.create()
+    -- Add some padding
+    total_width = total_width + 2
 
-    -- Add virtual text with colors
+    -- Create new popup with calculated width
+    current_buf, current_popup = M.create(total_width)
+
+    -- Add virtual text with colors, but use overlay positioning instead of right_align
     vim.api.nvim_buf_set_extmark(current_buf, ns, 0, 0, {
         virt_text = colored_text,
-        virt_text_pos = "right_align",
+        virt_text_pos = "overlay",
     })
 end
 

@@ -7,6 +7,62 @@ local function clean_key(key)
     return key:gsub('^["\']', ''):gsub('["\']$', '')
 end
 
+-- Helper: smart path splitting that handles quoted segments
+---@param path string
+---@param delimiter string
+---@return string[]
+local function split_path_segments(path, delimiter)
+    local segments = {}
+    local current_segment = ""
+    local in_quotes = false
+    local quote_char = nil
+    local i = 1
+
+    while i <= #path do
+        local char = path:sub(i, i)
+
+        if not in_quotes then
+            if char == "'" or char == '"' then
+                in_quotes = true
+                quote_char = char
+                current_segment = current_segment .. char
+            elseif char == delimiter then
+                if current_segment ~= "" then
+                    table.insert(segments, current_segment)
+                    current_segment = ""
+                end
+            else
+                current_segment = current_segment .. char
+            end
+        else
+            current_segment = current_segment .. char
+            if char == quote_char then
+                in_quotes = false
+                quote_char = nil
+            end
+        end
+
+        i = i + 1
+    end
+
+    -- Add the last segment
+    if current_segment ~= "" then
+        table.insert(segments, current_segment)
+    end
+
+    return segments
+end
+
+-- Helper: quote key if it contains delimiter
+---@param key string
+local function quote_key_if_needed(key)
+    local delimiter = config.get().delimiter
+    if key:find(delimiter, 1, true) then
+        return "'" .. key .. "'"
+    end
+    return key
+end
+
 ---@param ft string The file type
 ---@param path string The path to find (e.g. "data[0].key1")
 ---@return boolean success Whether the jump was successful
@@ -31,7 +87,7 @@ function M.jump_to_path(ft, path)
     end
 
     -- Split path into segments
-    local segments = vim.split(path, config.get().delimiter, { plain = true })
+    local segments = split_path_segments(path, config.get().delimiter)
     local current_node = root
 
     -- Handle root node based on file type
@@ -95,7 +151,7 @@ function M.jump_to_path(ft, path)
                         if key_node then
                             local found_key = clean_key(vim.treesitter.get_node_text(key_node, 0))
 
-                            if found_key == key then
+                            if found_key == clean_key(key) then
                                 -- Get the value node which should contain the array
                                 local value_node = child:field("value")[1]
                                 if value_node then
@@ -207,7 +263,7 @@ function M.jump_to_path(ft, path)
                     if key_node then
                         local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
 
-                        if key == segment then
+                        if key == clean_key(segment) then
                             -- Get the value node
                             local value_node = child:field("value")[1]
                             if value_node then
@@ -354,7 +410,8 @@ local function get_all_paths()
             local key_node = node:field("key")[1]
             if key_node then
                 local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
-                local new_path = current_path .. (current_path ~= "" and config.get().delimiter or "") .. key
+                local new_path = current_path ..
+                (current_path ~= "" and config.get().delimiter or "") .. quote_key_if_needed(key)
                 table.insert(paths, new_path)
 
                 -- Traverse value node

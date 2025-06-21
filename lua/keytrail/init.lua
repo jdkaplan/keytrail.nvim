@@ -49,6 +49,16 @@ local function clean_key(key)
     return key:gsub('^["\']', ''):gsub('["\']$', '')
 end
 
+-- Helper: quote key if it contains delimiter
+---@param key string
+local function quote_key_if_needed(key)
+    local delimiter = config.get().delimiter
+    if key:find(delimiter, 1, true) then
+        return "'" .. key .. "'"
+    end
+    return key
+end
+
 ---@param ft FileType
 ---@return string|nil
 local function get_treesitter_path(ft)
@@ -89,7 +99,7 @@ local function get_treesitter_path(ft)
             local key_node = node:field("key")[1]
             if key_node then
                 local key = clean_key(vim.treesitter.get_node_text(key_node, 0))
-                table.insert(path, 1, key)
+                table.insert(path, 1, quote_key_if_needed(key))
             end
             -- Handle both YAML and JSON array items
         elseif type == "block_sequence_item" or type == "flow_sequence_item" or type == "array" then
