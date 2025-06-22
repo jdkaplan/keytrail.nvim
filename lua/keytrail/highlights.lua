@@ -1,6 +1,6 @@
 local M = {}
 
-local config = require('keytrail.config')
+local config = require("keytrail.config")
 
 ---Set up all highlight groups
 function M.setup()
@@ -26,10 +26,10 @@ function M.setup()
     for i, color in ipairs(config.get().colors) do
         vim.api.nvim_set_hl(0, "YAMLPathline" .. i, {
             fg = color,
+            bg = "NONE",
             bold = false,
         })
     end
 end
 
 return M
-
