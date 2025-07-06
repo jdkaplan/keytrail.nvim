@@ -449,7 +449,7 @@ local function get_all_paths()
     return paths
 end
 
----Open Telescope picker to select and jump to a path
+---Open picker to select and jump to a path
 ---@return boolean success Whether the jump was successful
 function M.jumpwindow()
     local ft = vim.bo.filetype
@@ -465,46 +465,18 @@ function M.jumpwindow()
         return false
     end
 
-    -- Create entries for Telescope
-    local entries = {}
-    for _, path in ipairs(paths) do
-        table.insert(entries, {
-            value = path,
-            display = path,
-            ordinal = path,
-        })
-    end
-    -- Configure Telescope picker
-    local picker = require('telescope.pickers')
-    local finders = require('telescope.finders')
-    local conf = require('telescope.config').values
-    local actions = require('telescope.actions')
-    local action_state = require('telescope.actions.state')
-
-    picker.new({}, {
-        prompt_title = "KeyTrail Paths",
-        finder = finders.new_table({
-            results = entries,
-            entry_maker = function(entry)
-                return {
-                    value = entry.value,
-                    display = entry.display,
-                    ordinal = entry.ordinal,
-                }
-            end,
-        }),
-        sorter = conf.generic_sorter({}),
-        attach_mappings = function(prompt_bufnr)
-            actions.select_default:replace(function()
-                actions.close(prompt_bufnr)
-                local selection = action_state.get_selected_entry()
-                if selection then
-                    M.jump_to_path(ft, selection.value)
-                end
-            end)
-            return true
+    -- Use vim.ui.select which will use whatever picker is configured
+    -- (telescope, fzf-lua, mini.picker, etc.)
+    vim.ui.select(paths, {
+        prompt = "Select path to jump to: ",
+        format_item = function(path)
+            return path
         end,
-    }):find()
+    }, function(selected_path)
+        if selected_path then
+            M.jump_to_path(ft, selected_path)
+        end
+    end)
 
     return true
 end
