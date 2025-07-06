@@ -24,6 +24,7 @@ A Neovim plugin in pure lua that shows the current path in YAML and JSON files, 
 Keytrail jump implements `vim.ui.select` which is a generic interface that is implemented with most pickers such as telescope, fzf-lua and others. For configuration for Telescope for example,
 please ensure you have that implemented in your plugin configuration (e.g. `plugins/telescope.lua`).
 
+telescope:
 ```lua
     extensions = {
         ["ui-select"] = {
@@ -38,6 +39,12 @@ please ensure you have that implemented in your plugin configuration (e.g. `plug
 require("telescope").load_extension("ui-select")
 ```
 
+fzf-lua:
+```lua
+-- Set fzf-lua as the picker for vim.ui.select
+require('fzf-lua').register_ui_select()
+```
+
 ## Installation
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
@@ -46,8 +53,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
     "jfryy/keytrail.nvim",
     dependencies = {
-        "nvim-treesitter/nvim-treesitter",
-        "nvim-telescope/telescope.nvim",
+        "nvim-treesitter/nvim-treesitter"
     }
 }
 ```
