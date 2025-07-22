@@ -31,7 +31,7 @@ local default_config = {
         yaml = true,
         json = true
     },
-    key_mapping = "jq" -- Key mapping for jump window (will be prefixed with <leader>)
+    key_mapping = "<Leader>jq" -- Key mapping for jump window
 }
 
 ---@type KeyTrailConfig

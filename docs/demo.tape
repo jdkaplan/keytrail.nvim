@@ -26,13 +26,13 @@ Enter
 Type "jj"
 Type "jjjjj"
 Sleep 2s
-Type " jq"
+Type "\jq"
 Sleep 1s
 Type "created"
 Up 2
 Sleep 2s
 Enter
-Type " jq"
+Type "\jq"
 Type "project"
 Enter
 Type "jj"

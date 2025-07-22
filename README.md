@@ -84,7 +84,7 @@ require("keytrail").setup({
     -- The delay in milliseconds before showing the hover popup
     hover_delay = 100,
     -- The key mapping to use for jumping to a path
-    key_mapping = "jq",
+    key_mapping = "<Leader>jq",
     -- The file types to enable KeyTrail for
     filetypes = {
         yaml = true,
@@ -99,5 +99,4 @@ KeyTrail provides the following commands:
 - `:KeyTrail <path>` - Jump to the specified path
 - `:KeyTrailJump` - Open Telescope to select and jump to a path
 
-By default, KeyTrail maps `<leader>jq` to `:KeyTrailJump` in normal mode.
-
+By default, KeyTrail maps `<Leader>jq` to `:KeyTrailJump` in normal mode.

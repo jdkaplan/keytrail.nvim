@@ -213,11 +213,6 @@ function M.setup(opts)
     end
     M._setup = true
 
-    -- Ensure leader key is set
-    if vim.g.mapleader == nil then
-        vim.g.mapleader = " "
-    end
-
     if opts ~= nil then
         config.set(opts)
     end
@@ -262,14 +257,17 @@ function M.setup(opts)
     end, {})
 
     -- Set up default key mapping
-    vim.keymap.set('n', '<leader>' .. config.get().key_mapping, function()
-        local ft = vim.bo.filetype
-        if not config.get().filetypes[ft] then
-            vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
-            return
-        end
-        jump.jumpwindow()
-    end, { desc = 'KeyTrail: Jump to path', silent = true })
+    local key_mapping = config.get().key_mapping
+    if key_mapping then
+        vim.keymap.set('n', key_mapping, function()
+            local ft = vim.bo.filetype
+            if not config.get().filetypes[ft] then
+                vim.notify("KeyTrail: Current filetype not supported", vim.log.levels.ERROR)
+                return
+            end
+            jump.jumpwindow()
+        end, { desc = 'KeyTrail: Jump to path', silent = true })
+    end
 end
 
 return M
